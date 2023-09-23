@@ -1,7 +1,9 @@
 using BOSS
 using Distributions
 using OptimizationOptimJL
-using NLopt
+# using NLopt
+# using OptimizationMOI, Juniper, Ipopt
+using JLD2
 
 include("motor_problem.jl")
 
@@ -56,41 +58,48 @@ function get_problem(X, Y)
     )
 end
 
-function test_script(problem=nothing; iters=1)
+function test_script(problem=nothing; iters=1, mle=true)
     if isnothing(problem)
         X, Y = get_data()
         problem = get_problem(X, Y)
     end
 
-    model_fitter = BOSS.OptimizationMLE(;
-        algorithm=LBFGS(),
-        multistart=200,
+    model_fitter = nothing
+    if mle
+        model_fitter = BOSS.OptimizationMLE(;
+            algorithm=LBFGS(),
+            multistart=200,
+            parallel=true,
+            apply_softplus=true,
+            softplus_params=fill(true, 3),
+            x_tol=1e-3,
+        )
+    else
+        model_fitter = BOSS.TuringBI(;
+            sampler=BOSS.PG(20),
+            warmup=400,
+            samples_in_chain=10,
+            chain_count=8,
+            leap_size=5,
+            parallel=true,
+        )
+    end
+
+    acq_maximizer = BOSS.GridAM(;
+        problem,
+        steps=[1., 0.01, 0.01, 0.01],
         parallel=true,
-        apply_softplus=true,
-        softplus_params=fill(true, 3),
-        x_tol=1e-3,
     )
-    # model_fitter = BOSS.TuringBI(;
-    #     sampler=BOSS.PG(20),
-    #     warmup=400,
-    #     samples_in_chain=10,
-    #     chain_count=8,
-    #     leap_size=5,
-    #     parallel=true,
+    # @show length(acq_maximizer.points)
+
+    # acq_maximizer = BOSS.NLoptAM(;
+    #     algorithm=:LD_SLSQP, #:LN_COBYLA,
+    #     multistart=1,
+    #     parallel=false,
+    #     xtol_abs=1e-3,
+    #     # initial_step=(ModelParam.domain()[2] - ModelParam.domain()[1]) / 10.,
     # )
 
-    # acq_maximizer = BOSS.GridAM(;
-    #     problem,
-    #     steps=[1., 0.01, 0.01, 0.01],
-    #     parallel=false,
-    # )
-    acq_maximizer = BOSS.NLoptAM(;
-        algorithm=:LN_COBYLA,
-        multistart=200,
-        parallel=true,
-        xtol_abs=1e-3,
-        maxeval=100,
-    )
     # maxtime = 2.
     # local_opt = NLopt.Opt(:LN_BOBYQA, BOSS.x_dim(problem))
     # local_opt.xtol_abs = 1e-3
@@ -103,10 +112,22 @@ function test_script(problem=nothing; iters=1)
     #     parallel=true,
     # )
 
+    # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(Ipopt.Optimizer, "print_level" => 0)
+    # minlp_solver = OptimizationMOI.MOI.OptimizerWithAttributes(Juniper.Optimizer, "nl_solver" => nl_solver)
+    # acq_maximizer = BOSS.OptimizationAM(;
+    #     algorithm=minlp_solver,
+    #     multistart=1,
+    #     parallel=false,
+    #     # autodiff=AutoModelingToolkit(),
+    #     autodiff=AutoForwardDiff(),
+    #     # abstol=1e-3,
+    # )
+
     term_cond = BOSS.IterLimit(iters)
 
     options = BOSS.BossOptions(;
         info=true,
+        debug=false,
         ϵ_samples=1,  # only affects MLE
     )
 
@@ -121,4 +142,21 @@ function result(problem)
     fitness[.!feasible] .= -Inf
     best = argmax(fitness)
     return problem.data.X[:,best], problem.data.Y[:,best]
+end
+
+
+
+# - - - RUN - - -
+
+function runopt()
+    runs = 20
+    iters = 50
+
+    for r in 1:runs
+        res = test_script(; iters, mle=true)
+        @save "./data/mle_$r.jld2" res
+
+        # res = test_script(; iters, mle=false)
+        # @save "./data/bi_$r.jld2" res
+    end
 end
