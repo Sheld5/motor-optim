@@ -148,15 +148,25 @@ end
 
 # - - - RUN - - -
 
+function data_dict(data::BOSS.ExperimentDataPost)
+    return Dict(
+        "X"=>data.X,
+        "Y"=>data.Y,
+        "θ"=>data.θ,
+        "length_scales"=>data.length_scales,
+        "noise_vars"=>data.noise_vars,
+    )
+end
+
 function runopt()
-    runs = 20
-    iters = 50
+    runs = 1#20
+    iters = 1#50
 
     for r in 1:runs
         res = test_script(; iters, mle=true)
-        @save "./data/mle_$r.jld2" res
+        save("./data/mle_$r.jld2", data_dict(res.data))
 
         # res = test_script(; iters, mle=false)
-        # @save "./data/bi_$r.jld2" res
+        # save("./data/bi_$r.jld2", data_dict(res.data))
     end
 end
