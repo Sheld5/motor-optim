@@ -1,8 +1,8 @@
 using BOSS
 using Distributions
-# using OptimizationOptimJL
-# using NLopt
-using OptimizationMOI, Juniper, Ipopt
+using OptimizationOptimJL
+using NLopt
+# using OptimizationMOI, Juniper, Ipopt
 using JLD2
 
 include("motor_problem.jl")
@@ -92,36 +92,42 @@ function test_script(problem=nothing; iters=1, mle=true)
     # )
     # @show length(acq_maximizer.points)
 
-    # acq_maximizer = BOSS.NLoptAM(;
-    #     algorithm=:LD_SLSQP, #:LN_COBYLA
-    #     multistart=10,
-    #     parallel=false,
-    #     xtol_abs=1e-7,#1e-3,
-    #     maxtime=2.,
-    # )
-
-    nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
-        Ipopt.Optimizer,
-        "print_level" => 0,
-    )
-    minlp_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
-        Juniper.Optimizer,
-        "nl_solver" => nl_solver,
-        "log_levels" => Symbol[],
-        "time_limit" => 60.,
-    )
-    acq_maximizer = BOSS.OptimizationAM(;
-        algorithm=minlp_solver,
-        multistart=8,
+    acq_maximizer = BOSS.NLoptAM(;
+        algorithm=:LN_COBYLA,
+        multistart=32,
         parallel=true,
-        autodiff=AutoForwardDiff(),
+        xtol_abs=1e-3,
+        # maxtime=2.,
     )
+
+    # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
+    #     Ipopt.Optimizer,
+    #     "print_level" => 0,
+    # )
+    # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
+    #     NLopt.Optimizer,
+    #     "algorithm" => :GN_ORIG_DIRECT,
+    #     "xtol_abs" => 1e-3,
+    # )
+    # minlp_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
+    #     Juniper.Optimizer,
+    #     "nl_solver" => nl_solver,
+    #     "log_levels" => Symbol[],
+    #     # "time_limit" => 20.,
+    #     "atol" => 1e-18,
+    # )
+    # acq_maximizer = BOSS.OptimizationAM(;
+    #     algorithm=minlp_solver,
+    #     multistart=1,
+    #     parallel=false,
+    #     autodiff=AutoForwardDiff(),
+    # )
 
     term_cond = BOSS.IterLimit(iters)
 
     options = BOSS.BossOptions(;
         info=true,
-        debug=false,
+        debug=true,
         ϵ_samples=1,  # only affects MLE
     )
 
