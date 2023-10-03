@@ -1,8 +1,8 @@
 using BOSS
 using Distributions
-using OptimizationOptimJL
+# using OptimizationOptimJL
 # using NLopt
-# using OptimizationMOI, Juniper, Ipopt
+using OptimizationMOI, Juniper, Ipopt
 using JLD2
 
 include("motor_problem.jl")
@@ -27,7 +27,7 @@ function get_problem(X, Y)
 
     objective(x) = ModelParam.calc(x...)
     parametric(x, θ) = ModelParam.calc(x..., θ...)
-    constraints(x) = ModelParam.check_feas(x...)
+    constraints(x) = [ModelParam.check_feas(x...)...]
 
     domain = BOSS.Domain(;
         bounds = ModelParam.domain(),
@@ -85,43 +85,37 @@ function test_script(problem=nothing; iters=1, mle=true)
         )
     end
 
-    acq_maximizer = BOSS.GridAM(;
-        problem,
-        steps=[1., 0.01, 0.01, 0.01],
-        parallel=true,
-    )
+    # acq_maximizer = BOSS.GridAM(;
+    #     problem,
+    #     steps=[1., 0.01, 0.01, 0.01],
+    #     parallel=true,
+    # )
     # @show length(acq_maximizer.points)
 
     # acq_maximizer = BOSS.NLoptAM(;
-    #     algorithm=:LD_SLSQP, #:LN_COBYLA,
-    #     multistart=1,
+    #     algorithm=:LD_SLSQP, #:LN_COBYLA
+    #     multistart=10,
     #     parallel=false,
-    #     xtol_abs=1e-3,
-    #     # initial_step=(ModelParam.domain()[2] - ModelParam.domain()[1]) / 10.,
+    #     xtol_abs=1e-7,#1e-3,
+    #     maxtime=2.,
     # )
 
-    # maxtime = 2.
-    # local_opt = NLopt.Opt(:LN_BOBYQA, BOSS.x_dim(problem))
-    # local_opt.xtol_abs = 1e-3
-    # local_opt.maxtime = maxtime
-    # acq_maximizer = BOSS.NLoptAM(;
-    #     algorithm=:AUGLAG,
-    #     local_optimizer=local_opt,
-    #     maxtime,
-    #     multistart=200,
-    #     parallel=true,
-    # )
-
-    # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(Ipopt.Optimizer, "print_level" => 0)
-    # minlp_solver = OptimizationMOI.MOI.OptimizerWithAttributes(Juniper.Optimizer, "nl_solver" => nl_solver)
-    # acq_maximizer = BOSS.OptimizationAM(;
-    #     algorithm=minlp_solver,
-    #     multistart=1,
-    #     parallel=false,
-    #     # autodiff=AutoModelingToolkit(),
-    #     autodiff=AutoForwardDiff(),
-    #     # abstol=1e-3,
-    # )
+    nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
+        Ipopt.Optimizer,
+        "print_level" => 0,
+    )
+    minlp_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
+        Juniper.Optimizer,
+        "nl_solver" => nl_solver,
+        "log_levels" => Symbol[],
+        "time_limit" => 60.,
+    )
+    acq_maximizer = BOSS.OptimizationAM(;
+        algorithm=minlp_solver,
+        multistart=8,
+        parallel=true,
+        autodiff=AutoForwardDiff(),
+    )
 
     term_cond = BOSS.IterLimit(iters)
 
