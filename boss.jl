@@ -58,7 +58,7 @@ function get_problem(X, Y)
     )
 end
 
-function test_script(problem=nothing; iters=1, mle=true)
+function test_script(problem=nothing; iters=1, mle=true, random=false)
     if isnothing(problem)
         X, Y = get_data()
         problem = get_problem(X, Y)
@@ -85,20 +85,25 @@ function test_script(problem=nothing; iters=1, mle=true)
         )
     end
 
+    acq_maximizer = nothing
+    if random
+        acq_maximizer = BOSS.RandomSelect()
+    else
+        acq_maximizer = BOSS.NLoptAM(;
+            algorithm=:LN_COBYLA,
+            multistart=32,
+            parallel=true,
+            xtol_abs=1e-3,
+            # maxtime=2.,
+        )
+    end
+
     # acq_maximizer = BOSS.GridAM(;
     #     problem,
     #     steps=[1., 0.01, 0.01, 0.01],
     #     parallel=true,
     # )
     # @show length(acq_maximizer.points)
-
-    acq_maximizer = BOSS.NLoptAM(;
-        algorithm=:LN_COBYLA,
-        multistart=32,
-        parallel=true,
-        xtol_abs=1e-3,
-        # maxtime=2.,
-    )
 
     # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
     #     Ipopt.Optimizer,
@@ -163,6 +168,9 @@ function runopt()
     iters = 1#50
 
     for r in 1:runs
+        res = test_script(; iters, mle=true, random=true)
+        save("./data/rand_$r.jld2", data_dict(res.data))
+        
         res = test_script(; iters, mle=true)
         save("./data/mle_$r.jld2", data_dict(res.data))
 

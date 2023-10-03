@@ -1,11 +1,12 @@
 
-# - - - - - - MANUAL MODEL ANALYSIS - - - - - -
+# using Plots
+using BOSS
+using JLD2
 
-
-# include("param_model_eliptic.jl")
 include("Surrogate_Q_volne_parametry.jl")
-using Plots
 
+
+# - - - - - - MANUAL MODEL ANALYSIS - - - - - -
 
 function test_corners(domain, func)
     @assert length(domain) == 2
@@ -226,7 +227,7 @@ function ansys_residuals()
     X, Y, Y_hat
 end
 
-function plot_residuals(X, Y, Y_hat)
+function plot_residuals_dptav(X, Y, Y_hat)
     nk = X[1,:]
     Dk = X[2,:]
     residuals = Y_hat .- Y
@@ -249,24 +250,30 @@ end
 function plot_residuals_dkds(X, Y, Y_hat)
     Dk = Float64[]
     ds = Float64[]
-    dP = Float64[]
-    Tav = Float64[]
+    dP_res = Float64[]
+    Tav_res = Float64[]
 
     for (x, y, y_hat) in zip(eachcol(X), eachcol(Y), eachcol(Y_hat))
         if x[1] == 60.
-            push!(Dk, x[2]); push!(ds, x[3]); push!(dP, y[1]); push!(Tav, y[2]);
+            push!(Dk, x[2]); push!(ds, x[3]);
+            push!(dP_res, y_hat[1]-y[1]); push!(Tav_res, y_hat[2]-y[2]);
         end
     end
 
-    @show minimum(dP), maximum(dP)
-    @show minimum(Tav), maximum(Tav)
+    @show minimum(dP_res), maximum(dP_res)
+    @show minimum(Tav_res), maximum(Tav_res)
 
-    xlabel = "nk"
-    ylabel = "Dk"
+    println("\nPOINTS:  ds, Dk | dP_diff, Tav_diff")
+    for (ds_, Dk_, dP_, Tav_) in zip(ds, Dk, dP_res, Tav_res)
+        println("$ds_ $Dk_ | $dP_, $Tav_")
+    end
+
+    xlabel = "Dk"
+    ylabel = "ds"
 
     # 2D
-    p1 = scatter(Dk, ds; xlabel, ylabel, zlabel="dP", zcolor=dP ./ 1000., title="dp / 1000")
-    p2 = scatter(Dk, ds; xlabel, ylabel, zlabel="Tav", zcolor=Tav, title="Tav")
+    p1 = scatter(Dk, ds; xlabel, ylabel, zlabel="dP", zcolor=dP_res ./ 1000., title="dp / 1000  (nk=60)")
+    p2 = scatter(Dk, ds; xlabel, ylabel, zlabel="Tav", zcolor=Tav_res, title="Tav  (nk=60)")
     # 3D
     # p1 = scatter(Dk, ds, dP; xlabel, ylabel, zlabel="dP", zcolor=dP)
     # p2 = scatter(Dk, ds, Tav; xlabel, ylabel, zlabel="Tav", zcolor=Tav)
