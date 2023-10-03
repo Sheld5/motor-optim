@@ -312,6 +312,57 @@ function get_problem_param_model(X, Y)
     )
 end
 
+# init_data = 4
+function compare_mle_bi(init_data)
+    dir = "./data"
+    fitness = BOSS.LinFitness([0., -1.])
+    y_max = ModelParam.y_max()
+
+    files = readdir(dir)
+    mle = [load(dir*"/"*f) for f in files if startswith(f, "mle")]
+    bi = [load(dir*"/"*f) for f in files if startswith(f, "bi")]
+
+    mle_bsf = bsf_series.(mle, Ref(fitness), Ref(y_max), Ref(init_data))
+    bi_bsf = bsf_series.(bi, Ref(fitness), Ref(y_max), Ref(init_data))
+
+    plot(; title="MLE vs BI | median,min,max fitness", ylabel="-Tav", xlabel="iteration")
+    plot_runs!(mle_bsf; label="MLE")
+    plot_runs!(bi_bsf; label="BI")
+end
+
+function plot_runs!(runs; label=nothing)
+    # assert all runs have the same number of iterations
+    iterations = first(runs)[1]
+    @assert all(r -> r[1]==iterations, runs)
+
+    mins = minimum.(((r[2][i] for r in runs) for i in 1:length(iterations)))
+    maxs = maximum.(((r[2][i] for r in runs) for i in 1:length(iterations)))
+    meds = median.(((r[2][i] for r in runs) for i in 1:length(iterations)))
+
+    plot!(iterations, meds; yerror=(meds.-mins, maxs.-meds), label)
+end
+
+function bsf_series(res, fitness, y_max, init_data)
+    feasible(y) = all(y .<= y_max)
+    X, Y = res["X"], res["Y"]
+    @assert size(X)[2] == size(Y)[2]
+
+    iters = size(X)[2] - init_data
+    iteration = [i for i in 0:iters]
+
+    bsf = [maximum((fitness(y) for y in eachcol(Y[:,1:init_data]) if feasible(y)))]
+    for i in 1:iters
+        y = Y[:,init_data+i]
+        if feasible(y) && (fitness(y) > last(bsf))
+            push!(bsf, fitness(y))
+        else
+            push!(bsf, last(bsf))
+        end
+    end
+
+    return iteration, bsf
+end
+
 
 
 # - - - - - - OLD DATA - - - - - -
