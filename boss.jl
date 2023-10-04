@@ -1,8 +1,9 @@
 using BOSS
 using Distributions
 using OptimizationOptimJL
-using NLopt
+# using NLopt
 # using OptimizationMOI, Juniper, Ipopt
+using PRIMA
 using JLD2
 
 include("motor_problem.jl")
@@ -87,14 +88,12 @@ function test_script(problem=nothing; iters=1, mle=true, random=false)
 
     acq_maximizer = nothing
     if random
-        acq_maximizer = BOSS.RandomSelect()
+        acq_maximizer = BOSS.RandomSelectAM()
     else
-        acq_maximizer = BOSS.NLoptAM(;
-            algorithm=:LN_COBYLA,
-            multistart=32,
+        acq_maximizer = BOSS.CobylaAM(PRIMA;
+            multistart=200,
             parallel=true,
-            xtol_abs=1e-3,
-            # maxtime=2.,
+            rhoend=1e-3,
         )
     end
 
@@ -104,6 +103,14 @@ function test_script(problem=nothing; iters=1, mle=true, random=false)
     #     parallel=true,
     # )
     # @show length(acq_maximizer.points)
+
+    # acq_maximizer = BOSS.NLoptAM(;
+    #     algorithm=:LN_COBYLA,
+    #     multistart=32,
+    #     parallel=true,
+    #     xtol_abs=1e-3,
+    #     # maxtime=2.,
+    # )
 
     # nl_solver = OptimizationMOI.MOI.OptimizerWithAttributes(
     #     Ipopt.Optimizer,
@@ -132,7 +139,7 @@ function test_script(problem=nothing; iters=1, mle=true, random=false)
 
     options = BOSS.BossOptions(;
         info=true,
-        debug=true,
+        debug=false,
         ϵ_samples=1,  # only affects MLE
     )
 
@@ -164,8 +171,8 @@ function data_dict(data::BOSS.ExperimentDataPost)
 end
 
 function runopt()
-    runs = 1#20
-    iters = 1#50
+    runs = 20
+    iters = 20
 
     for r in 1:runs
         res = test_script(; iters, mle=true, random=true)
@@ -174,7 +181,7 @@ function runopt()
         res = test_script(; iters, mle=true)
         save("./data/mle_$r.jld2", data_dict(res.data))
 
-        # res = test_script(; iters, mle=false)
-        # save("./data/bi_$r.jld2", data_dict(res.data))
+        res = test_script(; iters, mle=false)
+        save("./data/bi_$r.jld2", data_dict(res.data))
     end
 end

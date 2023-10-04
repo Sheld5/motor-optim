@@ -2,7 +2,7 @@
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "0b2439e3aacb8afb4c53ae16c663beac1a11c2bc"
+project_hash = "afb6d20b5cd8ee3fc7fccc10f2820e67b17b0be6"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f5c25e8a5b29b5e941b7408bc8cc79fea4d9ef9a"
@@ -170,7 +170,7 @@ uuid = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 version = "0.4.7"
 
 [[deps.BOSS]]
-deps = ["AbstractGPs", "Bijectors", "Distributions", "DistributionsAD", "ForwardDiff", "InteractiveUtils", "LatinHypercubeSampling", "NLopt", "Optimization", "Suppressor", "Turing", "Zygote"]
+deps = ["AbstractGPs", "Bijectors", "Distributions", "DistributionsAD", "ForwardDiff", "InteractiveUtils", "LatinHypercubeSampling", "Optimization", "Suppressor", "Turing", "Zygote"]
 path = "../BOSS.jl"
 uuid = "15052f3f-a82a-4ca3-bbc4-f478a3bd1ae2"
 version = "0.1.0"
@@ -1673,6 +1673,20 @@ git-tree-sha1 = "67eae2738d63117a196f497d7db789821bce61d1"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.11.17"
 
+[[deps.PRIMA]]
+deps = ["PRIMA_jll", "TypeUtils"]
+git-tree-sha1 = "3ce2225699dbfd7f9dbd7dc3160b4892edb2bda9"
+repo-rev = "main"
+repo-url = "../../PRIMA.jl"
+uuid = "0a7d04aa-8ac2-47b3-b7a7-9dbd6ad661ed"
+version = "0.1.0"
+
+[[deps.PRIMA_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "f7bbf8d5dda12f3f417b350baf82ebf0d190a623"
+uuid = "eead6e0c-2d5b-5641-a95c-b722de96d551"
+version = "0.7.1+0"
+
 [[deps.PackageExtensionCompat]]
 git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
 uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
@@ -2377,6 +2391,18 @@ version = "0.29.1"
     [deps.Turing.weakdeps]
     DynamicHMC = "bbc10e6e-7c05-544b-b16e-64fede858acb"
     Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+
+[[deps.TypeUtils]]
+deps = ["Requires"]
+git-tree-sha1 = "7deafe2cfa697e9abbde4ea61d36ebf8e118c9de"
+uuid = "c3b1956e-8857-4d84-9b79-890df85b1e67"
+version = "0.3.1"
+
+    [deps.TypeUtils.extensions]
+    TypeUtilsTwoDimensionalExt = "TwoDimensional"
+
+    [deps.TypeUtils.weakdeps]
+    TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
 
 [[deps.URIs]]
 git-tree-sha1 = "b7a5e99f24892b6824a954199a45e9ffcc1c70f0"
