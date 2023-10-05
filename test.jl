@@ -337,19 +337,31 @@ function plot_runs!(runs; label=nothing)
     # assert all runs have the same number of iterations
     iterations = first(runs)[1]
     @assert all(r -> r[1]==iterations, runs)
+    bsf = [r[2] for r in runs]
 
-    mins = minimum.(((r[2][i] for r in runs) for i in 1:length(iterations)))
-    maxs = maximum.(((r[2][i] for r in runs) for i in 1:length(iterations)))
-    meds = median.(((r[2][i] for r in runs) for i in 1:length(iterations)))
+    UNFEASIBLE = 1000.
+    for r in eachindex(bsf)
+        for i in eachindex(bsf[r])
+            if isnothing(bsf[r][i])
+                bsf[r][i] = UNFEASIBLE
+            else
+                bsf[r][i] *= -1.
+            end
+        end
+    end
+
+    mins = minimum.(((r[i] for r in bsf) for i in 1:length(iterations)))
+    maxs = maximum.(((r[i] for r in bsf) for i in 1:length(iterations)))
+    meds = median.(((r[i] for r in bsf) for i in 1:length(iterations)))
 
     # m = maximum(maxs)
     plot!(iterations, meds; yerror=(meds.-mins, maxs.-meds), label, ylimits=(0.,1000.))
 end
 
 function bsf_series(res, fitness, y_max, init_data)
-    feasible(y) = all(y .<= y_max)
     X, Y = res["X"], res["Y"]
     @assert size(X)[2] == size(Y)[2]
+    feasible(y) = all(y .<= y_max)
 
     iters = size(X)[2] - init_data
     iteration = [i for i in 0:iters]
@@ -365,7 +377,7 @@ function bsf_series(res, fitness, y_max, init_data)
         end
     end
 
-    return iteration, bsf
+    return [iteration, bsf]
 end
 
 

@@ -135,6 +135,8 @@ function test_script(problem=nothing; iters=1, mle=true, random=false)
     #     autodiff=AutoForwardDiff(),
     # )
 
+    acquisition = BOSS.ExpectedImprovement(; cons_safe=true)
+
     term_cond = BOSS.IterLimit(iters)
 
     options = BOSS.BossOptions(;
@@ -143,7 +145,7 @@ function test_script(problem=nothing; iters=1, mle=true, random=false)
         ϵ_samples=1,  # only affects MLE
     )
 
-    boss!(problem; model_fitter, acq_maximizer, term_cond, options)
+    boss!(problem; model_fitter, acq_maximizer, acquisition, term_cond, options)
     @show result(problem)
     return problem
 end
