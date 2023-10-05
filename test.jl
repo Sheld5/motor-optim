@@ -1,7 +1,8 @@
 
-# using Plots
 using BOSS
 using JLD2
+# using Plots
+using Distributions
 
 include("Surrogate_Q_volne_parametry.jl")
 
@@ -312,20 +313,22 @@ function get_problem_param_model(X, Y)
     )
 end
 
-# init_data = 4
-function compare_mle_bi(init_data)
+function compare_methods(init_data)
     dir = "./data"
     fitness = BOSS.LinFitness([0., -1.])
     y_max = ModelParam.y_max()
 
     files = readdir(dir)
+    rand = [load(dir*"/"*f) for f in files if startswith(f, "rand")]
     mle = [load(dir*"/"*f) for f in files if startswith(f, "mle")]
     bi = [load(dir*"/"*f) for f in files if startswith(f, "bi")]
 
+    rand_bsf = bsf_series.(rand, Ref(fitness), Ref(y_max), Ref(init_data))
     mle_bsf = bsf_series.(mle, Ref(fitness), Ref(y_max), Ref(init_data))
     bi_bsf = bsf_series.(bi, Ref(fitness), Ref(y_max), Ref(init_data))
 
-    plot(; title="MLE vs BI | median,min,max fitness", ylabel="-Tav", xlabel="iteration")
+    plot(; title="RANDOM vs EI_mle vs EI_bi | median,min,max fitness", ylabel="Tav", xlabel="iteration")
+    plot_runs!(rand_bsf; label="RAND")
     plot_runs!(mle_bsf; label="MLE")
     plot_runs!(bi_bsf; label="BI")
 end
@@ -339,7 +342,8 @@ function plot_runs!(runs; label=nothing)
     maxs = maximum.(((r[2][i] for r in runs) for i in 1:length(iterations)))
     meds = median.(((r[2][i] for r in runs) for i in 1:length(iterations)))
 
-    plot!(iterations, meds; yerror=(meds.-mins, maxs.-meds), label)
+    # m = maximum(maxs)
+    plot!(iterations, meds; yerror=(meds.-mins, maxs.-meds), label, ylimits=(0.,1000.))
 end
 
 function bsf_series(res, fitness, y_max, init_data)
@@ -350,10 +354,11 @@ function bsf_series(res, fitness, y_max, init_data)
     iters = size(X)[2] - init_data
     iteration = [i for i in 0:iters]
 
-    bsf = [maximum((fitness(y) for y in eachcol(Y[:,1:init_data]) if feasible(y)))]
+    fit = [fitness(y) for y in eachcol(Y[:,1:init_data]) if feasible(y)]
+    bsf = Union{Nothing, Float64}[isempty(fit) ? nothing : maximum(fit)]
     for i in 1:iters
         y = Y[:,init_data+i]
-        if feasible(y) && (fitness(y) > last(bsf))
+        if feasible(y) && (isnothing(last(bsf)) || (fitness(y) > last(bsf)))
             push!(bsf, fitness(y))
         else
             push!(bsf, last(bsf))
