@@ -33,6 +33,22 @@ function get_data()
     return hcat(x), hcat(y)
 end
 
+function get_data(len::Int, domain::BOSS.Domain)
+    X = reduce(hcat, (rand_interior_point(domain) for _ in 1:len))
+    Y = reduce(hcat, (ModelParam.calc(x...) for x in eachcol(X)))
+    return X, Y
+end
+
+function rand_interior_point(domain::BOSS.Domain)
+    x = BOSS.random_start(domain.bounds)
+    if !isnothing(domain.cons)
+        while any(domain.cons(x) .< 0.)
+            x = BOSS.random_start(domain.bounds)
+        end
+    end
+    return x
+end
+
 
 # - - - - - - PROBLEM DEFINITION - - - - - -
 

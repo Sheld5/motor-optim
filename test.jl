@@ -354,8 +354,15 @@ function plot_runs!(runs; label=nothing)
     maxs = maximum.(((r[i] for r in bsf) for i in 1:length(iterations)))
     meds = median.(((r[i] for r in bsf) for i in 1:length(iterations)))
 
+    @show last(meds)
+
     # m = maximum(maxs)
-    plot!(iterations, meds; yerror=(meds.-mins, maxs.-meds), label, ylimits=(0.,1000.))
+    plot!(iterations, meds;
+        yerror=(meds.-mins, maxs.-meds),
+        label,
+        ylimits=(0.,1000.),
+        markerstrokecolor=:auto,
+    )
 end
 
 function bsf_series(res, fitness, y_max, init_data)
