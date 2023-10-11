@@ -3,15 +3,13 @@
 
 include("Surrogate_Q_volne_parametry.jl")
 
-function generate_data(LHC_size)
-    domain = BOSS.Domain(;
+function get_domain()
+    constraints(x) = [ModelParam.check_feas(x...)...]
+    return BOSS.Domain(;
         bounds = ModelParam.domain(),
         discrete = ModelParam.discrete_dims(),
-        cons = (x)->ModelParam.check_feas(x...),
+        cons = constraints,
     )
-
-    X, Y = generate_LHC(domain.bounds, LHC_size)
-    X, Y = BOSS.exclude_exterior_points(domain, X, Y; info=false)
 end
 
 function generate_LHC(bounds, LHC_size)
@@ -36,7 +34,7 @@ end
 function get_data(len::Int, domain::BOSS.Domain)
     X = reduce(hcat, (rand_interior_point(domain) for _ in 1:len))
     Y = reduce(hcat, (ModelParam.calc(x...) for x in eachcol(X)))
-    return X, Y
+    return X[:,:], Y[:,:]
 end
 
 function rand_interior_point(domain::BOSS.Domain)
@@ -54,7 +52,7 @@ end
 
 function example()
     # Initial data: (Corners and middle of the domain.)
-    X, Y = generate_data()
+    X, Y = generate_data(4, get_domain())
     @show size(X), size(Y)
 
     x = X[:,1]; y = Y[:,1]

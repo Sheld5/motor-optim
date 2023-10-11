@@ -213,7 +213,6 @@ function ansys_residuals()
         apply_softplus=true,
         softplus_params=fill(true, 3),
         x_tol=1e-3,
-
     )
 
     options = BOSS.BossOptions(;
@@ -234,6 +233,11 @@ function plot_residuals_dptav(X, Y, Y_hat)
     residuals = Y_hat .- Y
     @show minimum(residuals[1,:]), maximum(residuals[1,:])
     @show minimum(residuals[2,:]), maximum(residuals[2,:])
+
+    println("\nPOINTS:  ds, Dk | dP_diff, Tav_diff")
+    for (nk_, Dk_, dP_, Tav_) in zip(nk, Dk, residuals[1,:], residuals[2,:])
+        println("$nk_ $Dk_ | $dP_, $Tav_")
+    end
 
     xlabel = "nk"
     ylabel = "Dk"
@@ -276,8 +280,8 @@ function plot_residuals_dkds(X, Y, Y_hat)
     p1 = scatter(Dk, ds; xlabel, ylabel, zlabel="dP", zcolor=dP_res ./ 1000., title="dp / 1000  (nk=60)")
     p2 = scatter(Dk, ds; xlabel, ylabel, zlabel="Tav", zcolor=Tav_res, title="Tav  (nk=60)")
     # 3D
-    # p1 = scatter(Dk, ds, dP; xlabel, ylabel, zlabel="dP", zcolor=dP)
-    # p2 = scatter(Dk, ds, Tav; xlabel, ylabel, zlabel="Tav", zcolor=Tav)
+    # p1 = scatter(Dk, ds, dP_res; xlabel, ylabel, zlabel="dP", zcolor=dP_res)
+    # p2 = scatter(Dk, ds, Tav_res; xlabel, ylabel, zlabel="Tav", zcolor=Tav_res)
     
     display.((p1, p2))
 end
@@ -322,15 +326,18 @@ function compare_methods(init_data)
     rand = [load(dir*"/"*f) for f in files if startswith(f, "rand")]
     mle = [load(dir*"/"*f) for f in files if startswith(f, "mle")]
     bi = [load(dir*"/"*f) for f in files if startswith(f, "bi")]
+    gp = [load(dir*"/"*f) for f in files if startswith(f, "gp")]
 
     rand_bsf = bsf_series.(rand, Ref(fitness), Ref(y_max), Ref(init_data))
     mle_bsf = bsf_series.(mle, Ref(fitness), Ref(y_max), Ref(init_data))
     bi_bsf = bsf_series.(bi, Ref(fitness), Ref(y_max), Ref(init_data))
+    gp_bsf = bsf_series.(gp, Ref(fitness), Ref(y_max), Ref(init_data))
 
-    plot(; title="RANDOM vs EI_mle vs EI_bi | median,min,max fitness", ylabel="Tav", xlabel="iteration")
+    plot(; title="(median,min,max) fitness", ylabel="Tav", xlabel="iteration")
     plot_runs!(rand_bsf; label="RAND")
     plot_runs!(mle_bsf; label="MLE")
     plot_runs!(bi_bsf; label="BI")
+    plot_runs!(gp_bsf; label="GP (MLE)")
 end
 
 function plot_runs!(runs; label=nothing)
@@ -385,6 +392,30 @@ function bsf_series(res, fitness, y_max, init_data)
     end
 
     return [iteration, bsf]
+end
+
+function get_opt()
+    dir = "data03"
+    f = "mle_10.jld2"
+
+    data = load(dir*"/"*f)
+    result(data)
+end
+
+function result(data)
+    fit = BOSS.LinFitness([0., -1.])
+
+    X, Y = data["X"], data["Y"]
+    @assert size(X)[2] == size(Y)[2]
+    isempty(X) && return nothing
+
+    feasible = BOSS.is_feasible.(eachcol(Y), Ref(ModelParam.y_max()))
+    fitness = fit.(eachcol(Y))
+    fitness[.!feasible] .= -Inf
+    best = argmax(fitness)
+
+    feasible[best] || return nothing
+    return X[:,best], Y[:,best]
 end
 
 
@@ -463,20 +494,5 @@ function get_old_data()
 
     Y = data[:,4:5]'
 
-    domain = BOSS.Domain(;
-        bounds = ModelParam.domain(),
-        discrete = ModelParam.discrete_dims(),
-        cons = (x)->ModelParam.check_feas(x...),
-    )
-
-    Xf = Vector{Float64}[]
-    Yf = Vector{Float64}[]
-    for (x,y) in zip(eachcol(X), eachcol(Y))
-        if BOSS.in_domain(domain, x)
-            push!(Xf, x)
-            push!(Yf, y)
-        end
-    end
-
-    return reduce(hcat, Xf), reduce(hcat, Yf)
+    return X[:,:], Y[:,:]
 end
