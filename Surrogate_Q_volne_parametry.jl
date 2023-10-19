@@ -6,8 +6,7 @@ using Distributions
 y_max() = [600., Inf]
 
 function domain()  # nk, dk, Ds, Q
-    # return [10, 0.001, 0.411, 0.001], [100, 1., 0.519, 1.]
-    return [30, 0.01, 0.411, 0.001], [60, 0.03, 0.519, 1.]
+    return [20, 0.01, 0.374, 0.3], [80, 0.03, 0.520, 0.8]
 end
 
 discrete_dims() = [true, false, false, false]

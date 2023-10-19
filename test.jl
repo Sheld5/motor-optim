@@ -380,17 +380,20 @@ function bsf_series(res, fitness, y_max, init_data)
     iters = size(X)[2] - init_data
     iteration = [i for i in 0:iters]
 
+    opt_x = nothing
     fit = [fitness(y) for y in eachcol(Y[:,1:init_data]) if feasible(y)]
     bsf = Union{Nothing, Float64}[isempty(fit) ? nothing : maximum(fit)]
     for i in 1:iters
         y = Y[:,init_data+i]
         if feasible(y) && (isnothing(last(bsf)) || (fitness(y) > last(bsf)))
             push!(bsf, fitness(y))
+            opt_x = X[:,init_data+i]
         else
             push!(bsf, last(bsf))
         end
     end
 
+    println("$opt_x $(last(bsf))")
     return [iteration, bsf]
 end
 

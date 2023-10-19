@@ -14,7 +14,7 @@ function get_domain()
 end
 
 function grid(; save=false)
-    lhc_size = 120
+    lhc_size = 180
     bounds = ModelParam.domain()
     domain = get_domain()
 
