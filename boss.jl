@@ -1,8 +1,6 @@
 using BOSS
 using Distributions
 using OptimizationOptimJL
-# using NLopt
-# using OptimizationMOI, Juniper, Ipopt
 using PRIMA
 using JLD2
 
@@ -140,12 +138,12 @@ function data_dict(data::BOSS.ExperimentDataPost)
 end
 
 function runopt()
-    runs = 20
-    iters = 100
+    runs = 10
+    iters = 10
 
     for r in 1:runs
         # new random data
-        X, Y = get_data(4, get_domain())
+        X, Y = get_data(2, get_domain())
 
         problem = get_problem(deepcopy.((X, Y))...)
         res = test_script(problem; iters, mle=true, random=true)
@@ -155,13 +153,13 @@ function runopt()
         res = test_script(problem; iters, mle=true)
         save("./data/mle_$r.jld2", data_dict(res.data))
 
-        problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, mle=false)
-        save("./data/bi_$r.jld2", data_dict(res.data))
+        # problem = get_problem(deepcopy.((X, Y))...)
+        # res = test_script(problem; iters, mle=false)
+        # save("./data/bi_$r.jld2", data_dict(res.data))
 
-        problem = get_problem(deepcopy.((X, Y))...; param=false)
-        res = test_script(problem; iters, mle=true, param=false)
-        save("./data/gp_$r.jld2", data_dict(res.data))
+        # problem = get_problem(deepcopy.((X, Y))...; param=false)
+        # res = test_script(problem; iters, mle=true, param=false)
+        # save("./data/gp_$r.jld2", data_dict(res.data))
     end
 end
 
