@@ -1,10 +1,10 @@
 using BOSS
 using Distributions
-using OptimizationOptimJL
 using PRIMA
 using JLD2
 
 include("motor_problem.jl")
+include("data.jl")
 
 function get_priors(x_dim, y_dim)
     # θ: A1, A2, A3
@@ -17,6 +17,7 @@ function get_priors(x_dim, y_dim)
     
     # y: dP, Tav
     noise_var_priors = fill(Dirac(1e-8), y_dim)
+    # noise_var_priors = [truncated(Normal(0., 1.); bound=0.), truncated(Normal(0., 0.01); bound=0.)]
 
     return θ_priors, length_scale_priors, noise_var_priors
 end
@@ -59,6 +60,13 @@ function get_problem(X, Y; param=true)
     )
 end
 
+"""
+Run BOSS on the motor problem.
+
+Use keyword `param` to change between the Semiparametric model and sole GP.
+Use keyword `mle` to change between MLE and BI.
+Use keyword `random` to change between maximizing the acquisition function and random sampling.
+"""
 function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=false, param=true)
     if isnothing(problem)
         X, Y = get_data(init_data, get_domain())
@@ -68,13 +76,12 @@ function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=fal
 
     model_fitter = nothing
     if mle
-        model_fitter = BOSS.OptimizationMLE(;
-            algorithm=LBFGS(),
+        model_fitter = BOSS.NewuoaMLE(PRIMA;
             multistart=200,
             parallel=true,
             apply_softplus=true,
             softplus_params=(param ? fill(true, 3) : nothing),
-            x_tol=1e-3,
+            rhoend=1e-3,
         )
     else
         model_fitter = BOSS.TuringBI(;
@@ -92,7 +99,7 @@ function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=fal
         acq_maximizer = BOSS.RandomSelectAM()
     else
         acq_maximizer = BOSS.CobylaAM(PRIMA;
-            multistart=200,
+            multistart=200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
             parallel=true,
             rhoend=1e-3,
         )
@@ -115,6 +122,9 @@ function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=fal
     return problem
 end
 
+"""
+Return the best found point.
+"""
 function result(problem)
     feasible = BOSS.is_feasible.(eachcol(problem.data.Y), Ref(problem.y_max))
     fitness = problem.fitness.(eachcol(problem.data.Y))
@@ -127,16 +137,9 @@ end
 
 # - - - RUN - - -
 
-function data_dict(data::BOSS.ExperimentDataPost)
-    return Dict(
-        "X"=>data.X,
-        "Y"=>data.Y,
-        "θ"=>data.θ,
-        "length_scales"=>data.length_scales,
-        "noise_vars"=>data.noise_vars,
-    )
-end
-
+"""
+Script to run multiple BOSS runs.
+"""
 function runopt()
     runs = 10
     iters = 10
