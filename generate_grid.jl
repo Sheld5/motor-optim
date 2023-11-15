@@ -35,8 +35,21 @@ function grid(; save=false)
     return X
 end
 
+function check_for_duplicates(X)
+    xs = []
+    duplicates = []
+    for x in eachcol(X)
+        if x in xs
+            push!(duplicates, x)
+        else
+            push!(xs, x)
+        end
+    end
+    return duplicates
+end
+
 function save_grid(X)
-    open("grid.txt", "w+") do io
+    open("./motor_problem/grid.txt", "w+") do io
         
         println(io)
         println(io, "\tnk\tdk\tDs\tQ")
