@@ -85,7 +85,7 @@ function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=fal
         )
     else
         model_fitter = BOSS.TuringBI(;
-            sampler=BOSS.PG(20),
+            sampler=BOSS.PG(20),  # TODO BOSS.NUTS(1000, 0.65) does not work. See https://github.com/TuringLang/DistributionsAD.jl/issues/260
             warmup=400,
             samples_in_chain=10,
             chain_count=8,

@@ -10,18 +10,17 @@ function ansys_model_final()
     y_dim = 2
     domain = ModelParam.domain()
 
-    model = BOSS.Nonparametric(;
+    return BOSS.Nonparametric(;
         length_scale_priors = fill(Product([truncated(Normal(0., dif/3); lower=0.) for dif in (domain[2][i]-domain[1][i] for i in 1:x_dim)]), y_dim),
     )
-    return (x) -> model(x)[1]
 end
 
 function save_ansys_params(data)
-    save("./motor_problem/ansys_model_params.jld2", data_dict(data))
+    save("./motor-optim/ansys_model_params.jld2", data_dict(data))
 end
 
 function load_ansys_model()
-    data_dict = load("./motor_problem/ansys_model_params.jld2")
+    data_dict = load("./motor-optim/ansys_model_params.jld2")
     data = BOSS.ExperimentDataMLE(
         data_dict["X"],
         data_dict["Y"],

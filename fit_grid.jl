@@ -1,6 +1,7 @@
 using BOSS
 using Distributions
 using OptimizationOptimJL
+using XLSX
 
 include("motor_problem.jl")
 
@@ -67,21 +68,28 @@ ansys_noise_var_priors() = fill(Dirac(1e-8), 2)
 # - - - - - - - - SCRIPTS - - - - - - - -
 
 function load_grid()
-    path = "./motor_problem/Grid_final_Ansys_noduplicates.txt"
-    a = open(path) do f
-        lines = collect(eachline(f))[2:end]
-        reduce(hcat, (l -> parse.(Float64, split(l))).(lines))
-    end
-    X, Y = a[1:4, :], a[5:6, :]
-
-    # swap dk, Ds back
-    dk = X[3,:]
-    Ds = X[2,:]
-    X[2,:] = dk
-    X[3,:] = Ds
-
+    path = "./motor-optim/Vysledky_Ansys.xlsx"
+    sheet = XLSX.readxlsx(path)["List3"];
+    D = convert(Matrix{Float64}, sheet["A2:F55"])
+    X, Y = D[:, 1:4]', D[:, 5:6]'
     return X, Y
 end
+# function load_grid_old()
+#     path = "./motor-optim/Grid_final_Ansys_noduplicates.txt"
+#     a = open(path) do f
+#         lines = collect(eachline(f))[2:end]
+#         reduce(hcat, (l -> parse.(Float64, split(l))).(lines))
+#     end
+#     X, Y = a[1:4, :], a[5:6, :]
+#
+#     # swap dk, Ds back
+#     dk = X[3,:]
+#     Ds = X[2,:]
+#     X[2,:] = dk
+#     X[3,:] = Ds
+#
+#     return X, Y
+# end
 
 function fit_grid(X, Y)
     problem = BOSS.OptimizationProblem(;
@@ -125,6 +133,7 @@ end
 
 function crosscheck(runs=10)
     X, Y = load_grid()
+    @show size(X), size(Y)
     data_size = size(X)[2]
 
     errs = []
