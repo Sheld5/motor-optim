@@ -6,6 +6,13 @@ using JLD2
 include("motor_problem.jl")
 include("data.jl")
 
+function get_acquisition()
+    BOSS.ExpectedImprovement(;
+        cons_safe=true,
+        ϵ_samples=1,
+    )
+end
+
 function get_priors(x_dim, y_dim)
     # θ: A1, A2, A3
     param_range = ModelParam.param_range()
@@ -22,32 +29,15 @@ function get_priors(x_dim, y_dim)
     return θ_priors, length_scale_priors, noise_var_priors
 end
 
-function get_problem(X, Y; param=true)
+function get_problem(X, Y;
+    surrogate_mode=:Semipar,  # :Semipar, :GP
+)
     x_dim, y_dim = size(X)[1], size(Y)[1]
 
-    objective(x) = ModelParam.calc(x...)
-    parametric(x, θ) = ModelParam.calc(x..., θ...)
-    
+    objective = x -> ModelParam.calc(x...)
     domain = get_domain()
-    
     θ_priors, length_scale_priors, noise_var_priors = get_priors(x_dim, y_dim)
-
-    model = nothing
-    if param
-        model = BOSS.Semiparametric(
-            BOSS.NonlinModel(;
-                predict=parametric,
-                param_priors=θ_priors,
-            ),
-            BOSS.Nonparametric(;
-                length_scale_priors,
-            ),
-        )
-    else
-        model = BOSS.Nonparametric(;
-            length_scale_priors,
-        )
-    end
+    model = get_surrogate(Val(surrogate_mode), θ_priors, length_scale_priors)
 
     BOSS.OptimizationProblem(;
         fitness = BOSS.LinFitness([0., -1.]),
@@ -60,6 +50,69 @@ function get_problem(X, Y; param=true)
     )
 end
 
+function get_surrogate(::Val{:GP}, θ_priors, length_scale_priors)
+    BOSS.Nonparametric(;
+        length_scale_priors,
+    )
+end
+function get_surrogate(::Val{:Semipar}, θ_priors, length_scale_priors)
+    parametric(x, θ) = ModelParam.calc(x..., θ...)
+
+    BOSS.Semiparametric(
+        BOSS.NonlinModel(;
+            predict = parametric,
+            param_priors = θ_priors,
+        ),
+        BOSS.Nonparametric(;
+            length_scale_priors,
+        ),
+    )
+end
+
+function get_model_fitter(::Val{:MLE}, surrogate_mode; parallel=true)
+    BOSS.NewuoaMLE(PRIMA;
+        multistart=200,
+        parallel,
+        apply_softplus=true,
+        softplus_params=get_softplus_params(surrogate_mode),
+        rhoend=1e-3,
+    )
+end
+function get_model_fitter(::Val{:BI}, surrogate_mode; parallel=true)
+    BOSS.TuringBI(;
+        sampler=BOSS.PG(20),  # TODO BOSS.NUTS(1000, 0.65) does not work. See https://github.com/TuringLang/DistributionsAD.jl/issues/260
+        warmup=400,
+        samples_in_chain=10,
+        chain_count=8,
+        leap_size=5,
+        parallel,
+    )
+end
+
+get_softplus_params(::Val{:Semipar}) = fill(true, 3)
+get_softplus_params(::Val{:GP}) = nothing
+
+function get_acq_maximizer(::Val{:Random}; parallel=true)
+    BOSS.RandomSelectAM()
+end
+function get_acq_maximizer(::Val{:COBYLA}; parallel=true)
+    BOSS.CobylaAM(PRIMA;
+        multistart=200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
+        parallel,
+        rhoend=1e-3,
+    )
+end
+
+function check_surrogate_mode(surrogate_mode, model)
+    if (surrogate_mode == :Semipar)
+        @assert model isa BOSS.Semiparametric
+    elseif (surrogate_mode == :GP)
+        @assert model isa BOSS.Nonparametric
+    else
+        @assert false
+    end
+end
+
 """
 Run BOSS on the motor problem.
 
@@ -67,49 +120,24 @@ Use keyword `param` to change between the Semiparametric model and sole GP.
 Use keyword `mle` to change between MLE and BI.
 Use keyword `random` to change between maximizing the acquisition function and random sampling.
 """
-function test_script(problem=nothing; init_data=1, iters=1, mle=true, random=false, param=true)
+function test_script(problem=nothing;
+    init_data=1,
+    iters=1,
+    model_fitter_mode=:MLE,  # :MLE, :BI
+    acq_maximizer_mode=:COBYLA,  # :COBYLA, :Random
+    surrogate_mode=:Semipar,  # :Semipar, :GP
+    parallel=true,
+)
     if isnothing(problem)
         X, Y = get_data(init_data, get_domain())
-        problem = get_problem(X, Y; param)
-    end
-    @assert param == !(problem.model isa BOSS.Nonparametric)
-
-    model_fitter = nothing
-    if mle
-        model_fitter = BOSS.NewuoaMLE(PRIMA;
-            multistart=200,
-            parallel=true,
-            apply_softplus=true,
-            softplus_params=(param ? fill(true, 3) : nothing),
-            rhoend=1e-3,
-        )
+        problem = get_problem(X, Y; surrogate_mode)
     else
-        model_fitter = BOSS.TuringBI(;
-            sampler=BOSS.PG(20),  # TODO BOSS.NUTS(1000, 0.65) does not work. See https://github.com/TuringLang/DistributionsAD.jl/issues/260
-            warmup=400,
-            samples_in_chain=10,
-            chain_count=8,
-            leap_size=5,
-            parallel=true,
-        )
+        check_surrogate_mode(surrogate_mode, problem.model)
     end
 
-    acq_maximizer = nothing
-    if random
-        acq_maximizer = BOSS.RandomSelectAM()
-    else
-        acq_maximizer = BOSS.CobylaAM(PRIMA;
-            multistart=200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
-            parallel=true,
-            rhoend=1e-3,
-        )
-    end
-
-    acquisition = BOSS.ExpectedImprovement(;
-        cons_safe=true,
-        ϵ_samples=1,
-    )
-
+    model_fitter = get_model_fitter(Val(model_fitter_mode), Val(surrogate_mode); parallel)
+    acq_maximizer = get_acq_maximizer(Val(acq_maximizer_mode); parallel)
+    acquisition = get_acquisition()
     term_cond = BOSS.IterLimit(iters)
 
     options = BOSS.BossOptions(;
@@ -148,20 +176,24 @@ function runopt()
         # new random data
         X, Y = get_data(2, get_domain())
 
+        # Random
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, mle=true, random=true)
+        res = test_script(problem; iters, acq_maximizer_mode=:Random)
         save("./data/rand_$r.jld2", data_dict(res.data))
         
+        # MLE
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, mle=true)
+        res = test_script(problem; iters)
         save("./data/mle_$r.jld2", data_dict(res.data))
 
+        # # BI
         # problem = get_problem(deepcopy.((X, Y))...)
-        # res = test_script(problem; iters, mle=false)
+        # res = test_script(problem; iters, model_fitter_mode=:BI)
         # save("./data/bi_$r.jld2", data_dict(res.data))
 
-        # problem = get_problem(deepcopy.((X, Y))...; param=false)
-        # res = test_script(problem; iters, mle=true, param=false)
+        # # MLE - GP
+        # problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
+        # res = test_script(problem; iters, model_fitter_mode=:MLE, surrogate_mode=:GP)
         # save("./data/gp_$r.jld2", data_dict(res.data))
     end
 end
@@ -182,8 +214,8 @@ end
 #     for r in 1:runs
 #         X, Y = starts[r]
 
-#         problem = get_problem(deepcopy.((X, Y))...; param=false)
-#         res = test_script(problem; iters, mle=true, param=false)
+#         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
+#         res = test_script(problem; iters, model_fitter_mode=:MLE, surrogate_mode=:GP)
 #         save(dir*"/gp_$r.jld2", data_dict(res.data))
 #     end
 # end
