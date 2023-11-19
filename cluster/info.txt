@@ -1,0 +1,14 @@
+
+# Modules
+`login: ml <module>`
+
+# Interactive job
+`login: srun -p cpufast --pty bash -i`
+
+# Scheduled job
+`sbatch -p cpu <script.sh> <input>`
+
+# Parallel job
+`sbatch -p cpu --cpus-per-task=12 <script.sh ...>`
+
+Parallelized julia code often throws `StackOverflowError`. Safer to just run sequential.

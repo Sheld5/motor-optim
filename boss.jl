@@ -168,33 +168,39 @@ end
 """
 Script to run multiple BOSS runs.
 """
-function runopt()
-    runs = 10
-    iters = 10
+function runopt(;
+    save_path="./data",
+    init_data=2,
+    runs=10,
+    iters=10,
+    id="",
+    parallel=true,
+)
+    isempty(id) || (id *= "_")
 
     for r in 1:runs
         # new random data
-        X, Y = get_data(2, get_domain())
+        X, Y = get_data(init_data, get_domain())
 
         # Random
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, acq_maximizer_mode=:Random)
-        save("./data/rand_$r.jld2", data_dict(res.data))
+        res = test_script(problem; iters, parallel, acq_maximizer_mode=:Random)
+        save(save_path*"/rand_"*id*"$r.jld2", data_dict(res.data))
         
         # MLE
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters)
-        save("./data/mle_$r.jld2", data_dict(res.data))
+        res = test_script(problem; iters, parallel)
+        save(save_path*"/mle_"*id*"$r.jld2", data_dict(res.data))
 
-        # # BI
-        # problem = get_problem(deepcopy.((X, Y))...)
-        # res = test_script(problem; iters, model_fitter_mode=:BI)
-        # save("./data/bi_$r.jld2", data_dict(res.data))
+        # BI
+        problem = get_problem(deepcopy.((X, Y))...)
+        res = test_script(problem; iters, parallel, model_fitter_mode=:BI)
+        save(save_path*"/bi_"*id*"$r.jld2", data_dict(res.data))
 
-        # # MLE - GP
-        # problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
-        # res = test_script(problem; iters, model_fitter_mode=:MLE, surrogate_mode=:GP)
-        # save("./data/gp_$r.jld2", data_dict(res.data))
+        # MLE - GP
+        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
+        res = test_script(problem; iters, parallel, surrogate_mode=:GP)
+        save(save_path*"/gp_"*id*"$r.jld2", data_dict(res.data))
     end
 end
 
