@@ -90,6 +90,9 @@ function get_model_fitter(::Val{:BI}, surrogate_mode; parallel=true)
         parallel,
     )
 end
+function get_model_fitter(::Val{:Random}, surrogate_mode; parallel=true)
+    BOSS.RandomMLE()
+end
 
 get_softplus_params(::Val{:Semipar}) = fill(true, 3)
 get_softplus_params(::Val{:GP}) = nothing
@@ -130,6 +133,9 @@ function test_script(problem=nothing;
     surrogate_mode=:Semipar,  # :Semipar, :GP
     parallel=true,
 )
+    if acq_maximizer_mode == :Random
+        model_fitter_mode = :Random
+    end
     if isnothing(problem)
         X, Y = get_data(init_data, get_domain())
         problem = get_problem(X, Y; surrogate_mode)
