@@ -1,3 +1,6 @@
 #!/bin/sh
 # Run from ~/home/soldasim/motor-optim/motor-optim
-sbatch -p cpu ./cluster/script.sh
+for i in {1..20}
+do
+   sbatch -p cpulong ./cluster/script.sh
+done

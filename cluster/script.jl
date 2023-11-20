@@ -9,7 +9,7 @@ t = @elapsed runopt(;
     save_path="./experiments/data",
     init_data=4,
     runs=10,
-    iters=100,
+    iters=50,
     id=ID,
     parallel=false,  # Parallelization causes `StackOverflowError` on RCI cluster.
 )

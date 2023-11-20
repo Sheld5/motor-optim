@@ -2,8 +2,8 @@ using JLD2
 using BOSS
 using Distributions
 
-include("./data.jl")
-include("./Surrogate_Q_volne_parametry.jl")
+include("data.jl")
+include("Surrogate_Q_volne_parametry.jl")
 
 """
 Use `f = ansys_model_final()` to retrieve the ansys model.
@@ -19,7 +19,7 @@ function ansys_model_final()
 end
 
 function save_ansys_params(data)
-    save("./motor-optim/ansys_model_params.jld2", data_dict(data))
+    save("./ansys_model_params.jld2", data_dict(data))
 end
 
 function load_ansys_model()
@@ -30,7 +30,7 @@ function load_ansys_model()
 end
 
 function load_ansys_model_data()
-    data_dict = load("./motor-optim/ansys_model_params.jld2")
+    data_dict = load("./ansys_model_params.jld2")
     return BOSS.ExperimentDataMLE(
         convert(Matrix{Float64}, data_dict["X"]),
         convert(Matrix{Float64}, data_dict["Y"]),
