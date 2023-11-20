@@ -100,7 +100,7 @@ get_softplus_params(::Val{:GP}) = nothing
 function get_acq_maximizer(::Val{:Random}; parallel=true)
     BOSS.RandomSelectAM()
 end
-function get_acq_maximizer(::Val{:COBYLA}; parallel=true)
+function get_acq_maximizer(::Val{:optim}; parallel=true)
     BOSS.CobylaAM(PRIMA;
         multistart=200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
         parallel,
@@ -121,15 +121,18 @@ end
 """
 Run BOSS on the motor problem.
 
-Use keyword `param` to change between the Semiparametric model and sole GP.
-Use keyword `mle` to change between MLE and BI.
-Use keyword `random` to change between maximizing the acquisition function and random sampling.
+# Keywords
+- `init_data`: The number of randomly generated initial data points.
+- `iters`: The number of iterations of BOSS.
+- `model_fitter_mode`: Defines the model parameter estimation technique. Choose from `:MLE` and `:BI`.
+- `acq_maximizer_mode`: Defines the acquisition function maximization technique. Choose from `:optim` and `:Random`.
+- `surrogate_mode`: Defines the surrogate model used. Choose from `:Semipar` and `:GP`.
 """
 function test_script(problem=nothing;
     init_data=1,
     iters=1,
     model_fitter_mode=:MLE,  # :MLE, :BI
-    acq_maximizer_mode=:COBYLA,  # :COBYLA, :Random
+    acq_maximizer_mode=:optim,  # :optim, :Random
     surrogate_mode=:Semipar,  # :Semipar, :GP
     parallel=true,
 )
