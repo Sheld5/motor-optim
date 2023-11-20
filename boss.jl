@@ -5,6 +5,7 @@ using JLD2
 
 include("motor_problem.jl")
 include("data.jl")
+include("ansys_model_final.jl")
 
 function get_acquisition()
     BOSS.ExpectedImprovement(;
@@ -29,12 +30,15 @@ function get_priors(x_dim, y_dim)
     return θ_priors, length_scale_priors, noise_var_priors
 end
 
+get_param_objective() = (x) -> ModelParam.calc(x...)
+get_ansys_objective() = load_ansys_model()
+
 function get_problem(X, Y;
     surrogate_mode=:Semipar,  # :Semipar, :GP
 )
     x_dim, y_dim = size(X)[1], size(Y)[1]
 
-    objective = x -> ModelParam.calc(x...)
+    objective = get_ansys_objective()
     domain = get_domain()
     θ_priors, length_scale_priors, noise_var_priors = get_priors(x_dim, y_dim)
     model = get_surrogate(Val(surrogate_mode), θ_priors, length_scale_priors)
@@ -56,11 +60,9 @@ function get_surrogate(::Val{:GP}, θ_priors, length_scale_priors)
     )
 end
 function get_surrogate(::Val{:Semipar}, θ_priors, length_scale_priors)
-    parametric(x, θ) = ModelParam.calc(x..., θ...)
-
     BOSS.Semiparametric(
         BOSS.NonlinModel(;
-            predict = parametric,
+            predict = (x, θ) -> ModelParam.calc(x..., θ...),
             param_priors = θ_priors,
         ),
         BOSS.Nonparametric(;

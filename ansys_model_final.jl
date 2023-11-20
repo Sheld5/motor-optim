@@ -25,7 +25,8 @@ end
 function load_ansys_model()
     data = load_ansys_model_data()
     model = ansys_model_final()
-    return BOSS.model_posterior(model, data)
+    post = BOSS.model_posterior(model, data)
+    return (x) -> post(x)[1]
 end
 
 function load_ansys_model_data()
