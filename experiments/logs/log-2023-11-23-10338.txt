@@ -1,0 +1,1 @@
+/var/spool/slurm/d/job6954098/slurm_script: line 8: julia: command not found
