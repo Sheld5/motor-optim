@@ -1,0 +1,5 @@
+
+Only saved after all methods finished. Thus starts should be consistent.
+
+Some runs have 49 iterations instead of 50.
+(The acquisition maximization returned an exterior point which was ignored.)
