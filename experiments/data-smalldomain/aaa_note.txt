@@ -1,2 +1,4 @@
 
 Domain changed to `[35, 0.025, 0.460, 0.3], [55, 0.03, 0.520, 0.4]` - a small area around optimum.
+
+Parametric model runs have different starts from other runs as they were run separately later.

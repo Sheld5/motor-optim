@@ -1,3 +1,0 @@
-
-Same small domain as in `smalldomain`.
-Parametric model runs, but different starts from `smalldomain` runs.
