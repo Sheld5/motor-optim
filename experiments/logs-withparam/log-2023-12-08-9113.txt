@@ -1,0 +1,23 @@
+WARNING: replacing module ModelParam.
+
+[2158316] signal (11.1): Segmentation fault
+in expression starting at /home/soldasim/motor-optim/motor-optim/cluster/script.jl:11
+cobyla at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+cobyla_minimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+nlopt_optimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+optimize! at /home/soldasim/.julia/packages/NLopt/1EJXl/src/NLopt.jl:623
+optimize at /home/soldasim/.julia/packages/NLopt/1EJXl/src/NLopt.jl:630
+unknown function (ip: 0x7f5c1272074b)
+_jl_invoke at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/gf.c:2758 [inlined]
+ijl_apply_generic at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/gf.c:2940
+acq_optimize at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:54
+macro expansion at /home/soldasim/motor-optim/BOSS.jl/src/optim_utils.jl:22 [inlined]
+#87#threadsfor_fun#19 at ./threadingconstructs.jl:200
+#87#threadsfor_fun at ./threadingconstructs.jl:167 [inlined]
+#1 at ./threadingconstructs.jl:139
+unknown function (ip: 0x7f5c1279c0af)
+_jl_invoke at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/gf.c:2758 [inlined]
+ijl_apply_generic at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/gf.c:2940
+jl_apply at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/julia.h:1880 [inlined]
+start_task at /cache/build/default-amdci5-5/julialang/julia-release-1-dot-9/src/task.c:1092
+Allocations: 636385180659 (Pool: 636332191217; Big: 52989442); GC: 222485

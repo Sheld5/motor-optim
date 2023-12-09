@@ -1,0 +1,4 @@
+
+Only saved after all methods finished. Thus starts should be consistent.
+
+Also includes runs with pure parametric model.
