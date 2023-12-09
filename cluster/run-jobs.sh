@@ -1,6 +1,6 @@
 #!/bin/sh
-# Run from ~/home/soldasim/motor-optim/motor-optim
-for i in {1..20}
+
+for i in {1..24}
 do
-   sbatch -p cpulong ./cluster/script.sh
+   sbatch -p cpulong --cpus-per-task=20 /home/soldasim/motor-optim/motor-optim/cluster/script.sh
 done
