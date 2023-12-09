@@ -1,6 +1,6 @@
 using BOSS
 using Distributions
-using OptimizationOptimJL
+# using OptimizationOptimJL
 using XLSX
 
 include("motor_problem.jl")
