@@ -1,7 +1,8 @@
 using BOSS
 using Distributions
-using PRIMA
 using JLD2
+# using PRIMA
+using OptimizationOptimJL, NLopt
 
 include("motor_problem.jl")
 include("data.jl")
@@ -34,7 +35,7 @@ get_param_objective() = (x) -> ModelParam.calc(x...)
 get_ansys_objective() = load_ansys_model()
 
 function get_problem(X, Y;
-    surrogate_mode=:Semipar,  # :Semipar, :GP
+    surrogate_mode=:Semipar,  # :Semipar, :GP, :Param
 )
     x_dim, y_dim = size(X)[1], size(Y)[1]
 
@@ -54,6 +55,12 @@ function get_problem(X, Y;
     )
 end
 
+function get_surrogate(::Val{:Param}, θ_priors, length_scale_priors)
+    BOSS.NonlinModel(;
+        predict = (x, θ) -> ModelParam.calc(x..., θ...),
+        param_priors = θ_priors,
+    )
+end
 function get_surrogate(::Val{:GP}, θ_priors, length_scale_priors)
     BOSS.Nonparametric(;
         length_scale_priors,
@@ -72,12 +79,21 @@ function get_surrogate(::Val{:Semipar}, θ_priors, length_scale_priors)
 end
 
 function get_model_fitter(::Val{:MLE}, surrogate_mode; parallel=true)
-    BOSS.NewuoaMLE(PRIMA;
+    ### PRIMA.jl causes `StackOverflowError` when parallelized on cluster.
+    # BOSS.NewuoaMLE(PRIMA;
+    #     multistart=1,#200,
+    #     parallel,
+    #     apply_softplus=true,
+    #     softplus_params=get_softplus_params(surrogate_mode),
+    #     rhoend=1e-3,
+    # )
+    BOSS.OptimizationMLE(;
+        algorithm=NelderMead(),
         multistart=200,
         parallel,
         apply_softplus=true,
         softplus_params=get_softplus_params(surrogate_mode),
-        rhoend=1e-3,
+        x_tol=1e-3,
     )
 end
 function get_model_fitter(::Val{:BI}, surrogate_mode; parallel=true)
@@ -94,6 +110,7 @@ function get_model_fitter(::Val{:Random}, surrogate_mode; parallel=true)
     BOSS.RandomMLE()
 end
 
+get_softplus_params(::Val{:Param}) = fill(true, 3)
 get_softplus_params(::Val{:Semipar}) = fill(true, 3)
 get_softplus_params(::Val{:GP}) = nothing
 
@@ -101,10 +118,17 @@ function get_acq_maximizer(::Val{:Random}; parallel=true)
     BOSS.RandomSelectAM()
 end
 function get_acq_maximizer(::Val{:optim}; parallel=true)
-    BOSS.CobylaAM(PRIMA;
+    ### PRIMA.jl causes `StackOverflowError` when parallelized on cluster.
+    # BOSS.CobylaAM(PRIMA;
+    #     multistart=1,#200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
+    #     parallel,
+    #     rhoend=1e-3,
+    # )
+    BOSS.NLoptAM(NLopt;
+        algorithm=:LN_COBYLA,
         multistart=200, # Make sure `multistart` >> 60 as Cobyla is not optimizing over the discrete `nk`.
         parallel,
-        rhoend=1e-3,
+        xtol_abs=1e-3,
     )
 end
 
@@ -113,6 +137,8 @@ function check_surrogate_mode(surrogate_mode, model)
         @assert model isa BOSS.Semiparametric
     elseif (surrogate_mode == :GP)
         @assert model isa BOSS.Nonparametric
+    elseif (surrogate_mode == :Param)
+        @assert model isa BOSS.NonlinModel
     else
         @assert false
     end
@@ -133,7 +159,7 @@ function test_script(problem=nothing;
     iters=1,
     model_fitter_mode=:MLE,  # :MLE, :BI
     acq_maximizer_mode=:optim,  # :optim, :Random
-    surrogate_mode=:Semipar,  # :Semipar, :GP
+    surrogate_mode=:Semipar,  # :Semipar, :GP, :Param
     parallel=true,
 )
     if acq_maximizer_mode == :Random
@@ -195,23 +221,40 @@ function runopt(;
 
         # Random
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, parallel, acq_maximizer_mode=:Random)
-        save(save_path*"/rand_"*id*"$r.jld2", data_dict(res.data))
+        res_rand = test_script(problem; iters, parallel, acq_maximizer_mode=:Random)
         
         # MLE
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, parallel)
-        save(save_path*"/mle_"*id*"$r.jld2", data_dict(res.data))
-
+        res_mle = test_script(problem; iters, parallel)
+        
         # BI
         problem = get_problem(deepcopy.((X, Y))...)
-        res = test_script(problem; iters, parallel, model_fitter_mode=:BI)
-        save(save_path*"/bi_"*id*"$r.jld2", data_dict(res.data))
-
+        res_bi = test_script(problem; iters, parallel, model_fitter_mode=:BI)
+        
         # MLE - GP
         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
-        res = test_script(problem; iters, parallel, surrogate_mode=:GP)
-        save(save_path*"/gp_"*id*"$r.jld2", data_dict(res.data))
+        res_gp = test_script(problem; iters, parallel, surrogate_mode=:GP)
+        
+        # BI - GP
+        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
+        res_gpbi = test_script(problem; iters, parallel, surrogate_mode=:GP, model_fitter_mode=:BI)
+
+        # MLE - PARAM
+        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Param)
+        res_par = test_script(problem; iters, parallel, surrogate_mode=:Param)
+
+        # BI - PARAM
+        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Param)
+        res_parbi = test_script(problem; iters, parallel, surrogate_mode=:Param, model_fitter_mode=:BI)
+
+        # TODO
+        save(save_path*"/rand_"*id*"$r.jld2", data_dict(res_rand.data))
+        save(save_path*"/mle_"*id*"$r.jld2", data_dict(res_mle.data))
+        save(save_path*"/bi_"*id*"$r.jld2", data_dict(res_bi.data))
+        save(save_path*"/gp_"*id*"$r.jld2", data_dict(res_gp.data))
+        save(save_path*"/gpbi_"*id*"$r.jld2", data_dict(res_gpbi.data))
+        save(save_path*"/par_"*id*"$r.jld2", data_dict(res_par.data))
+        save(save_path*"/parbi_"*id*"$r.jld2", data_dict(res_parbi.data))
     end
 end
 
