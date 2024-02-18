@@ -1,4 +1,9 @@
 
+THE LATEST EXPERIMENT SET
+
+init_data = 4
+
 Only saved after all methods finished. Thus starts should be consistent.
+(This is needed because of old PRIMA getting stuck.)
 
 Also includes runs with pure parametric model.
