@@ -11,35 +11,38 @@ function compare_methods(init_data)
     fitness = BOSS.LinFitness([0., -1.])
     y_max = ModelParam.y_max()
 
+    kernels = [BOSS.Matern12Kernel, BOSS.Matern32Kernel, BOSS.Matern52Kernel]
+    kernames = [split(string(ker), '.')[end] for ker in kernels]
+
     files = readdir(dir)
     rand = [load(dir*"/"*f) for f in files if startswith(f, "rand_")]
-    mle = [load(dir*"/"*f) for f in files if startswith(f, "mle_")]
-    bi = [load(dir*"/"*f) for f in files if startswith(f, "bi_")]
-    gp = [load(dir*"/"*f) for f in files if startswith(f, "gp_")]
-    gpbi = [load(dir*"/"*f) for f in files if startswith(f, "gpbi_")]
     par = [load(dir*"/"*f) for f in files if startswith(f, "par_")]
     parbi = [load(dir*"/"*f) for f in files if startswith(f, "parbi_")]
+    mle = [[load(dir*"/"*f) for f in files if startswith(f, "mle_"*ker*'_')] for ker on kernames]
+    bi = [[load(dir*"/"*f) for f in files if startswith(f, "bi_"*ker*'_')] for ker in kernames]
+    gp = [[load(dir*"/"*f) for f in files if startswith(f, "gp_"*ker*'_')] for ker in kernames]
+    gpbi = [[load(dir*"/"*f) for f in files if startswith(f, "gpbi_"*ker*'_')] for ker in kernames]
 
     rand_bsf = bsf_series.(rand, Ref(fitness), Ref(y_max), Ref(init_data))
-    mle_bsf = bsf_series.(mle, Ref(fitness), Ref(y_max), Ref(init_data))
-    bi_bsf = bsf_series.(bi, Ref(fitness), Ref(y_max), Ref(init_data))
-    gp_bsf = bsf_series.(gp, Ref(fitness), Ref(y_max), Ref(init_data))
-    gpbi_bsf = bsf_series.(gpbi, Ref(fitness), Ref(y_max), Ref(init_data))
     par_bsf = bsf_series.(par, Ref(fitness), Ref(y_max), Ref(init_data))
     parbi_bsf = bsf_series.(parbi, Ref(fitness), Ref(y_max), Ref(init_data))
+    mle_bsf = [bsf_series.(mle[i], Ref(fitness), Ref(y_max), Ref(init_data)) for i in eachindex(kernames)]
+    bi_bsf = [bsf_series.(bi[i], Ref(fitness), Ref(y_max), Ref(init_data)) for i in eachindex(kernames)]
+    gp_bsf = [bsf_series.(gp[i], Ref(fitness), Ref(y_max), Ref(init_data)) for i in eachindex(kernames)]
+    gpbi_bsf = [bsf_series.(gpbi[i], Ref(fitness), Ref(y_max), Ref(init_data)) for i in eachindex(kernames)]
 
     # TODO
-    # rand_bsf, mle_bsf, bi_bsf, gp_bsf, gpbi_bsf =
-    #     skip_inconsistent_runs([rand_bsf, mle_bsf, bi_bsf, gp_bsf, gpbi_bsf])
+    rand_bsf, mle_bsf, bi_bsf, gp_bsf, gpbi_bsf =
+        skip_inconsistent_runs([rand_bsf, par_bsf, parbi_bsf, mle_bsf..., bi_bsf..., gp_bsf..., gpbi_bsf...])
 
     p = plot(; title="fitness", ylabel="Tav", xlabel="iteration")
     plot_runs!(p, deepcopy(rand_bsf); label="RAND")
-    plot_runs!(p, deepcopy(mle_bsf); label="SEMI (MLE)")
-    plot_runs!(p, deepcopy(bi_bsf); label="SEMI (BI)")
-    plot_runs!(p, deepcopy(gp_bsf); label="GP (MLE)")
-    plot_runs!(p, deepcopy(gpbi_bsf); label="GP (BI)")
     plot_runs!(p, deepcopy(par_bsf); label="PAR (MLE)")
     plot_runs!(p, deepcopy(parbi_bsf); label="PAR (BI)")
+    for i in eachindex(kernames) plot_runs!(p, deepcopy(mle_bsf[i]); label="SEMI (MLE)") end
+    for i in eachindex(kernames) plot_runs!(p, deepcopy(bi_bsf[i]); label="SEMI (BI)") end
+    for i in eachindex(kernames) plot_runs!(p, deepcopy(gp_bsf[i]); label="GP (MLE)") end
+    for i in eachindex(kernames) plot_runs!(p, deepcopy(gpbi_bsf[i]); label="GP (BI)") end
     display(p)
 
     # p1 = plot(; title="(median,min,max) fitness", ylabel="Tav", xlabel="iteration")

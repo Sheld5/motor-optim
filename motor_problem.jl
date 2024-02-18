@@ -39,9 +39,11 @@ end
 
 function rand_interior_point(domain::BOSS.Domain)
     x = BOSS.random_start(domain.bounds)
+    x = BOSS.cond_func(round).(domain.discrete, x)
     if !isnothing(domain.cons)
         while any(domain.cons(x) .< 0.)
             x = BOSS.random_start(domain.bounds)
+            x = BOSS.cond_func(round).(domain.discrete, x)
         end
     end
     return x

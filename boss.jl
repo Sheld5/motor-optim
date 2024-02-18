@@ -35,14 +35,15 @@ get_param_objective() = (x) -> ModelParam.calc(x...)
 get_ansys_objective() = load_ansys_model()
 
 function get_problem(X, Y;
-    surrogate_mode=:Semipar,  # :Semipar, :GP, :Param
+    surrogate_mode=:Param,  # :Semipar, :GP, :Param
+    kernel=nothing,
 )
     x_dim, y_dim = size(X)[1], size(Y)[1]
 
     objective = get_ansys_objective()
     domain = get_domain()
     θ_priors, length_scale_priors, noise_var_priors = get_priors(x_dim, y_dim)
-    model = get_surrogate(Val(surrogate_mode), θ_priors, length_scale_priors)
+    model = get_surrogate(Val(surrogate_mode), θ_priors, length_scale_priors; kernel)
 
     BOSS.OptimizationProblem(;
         fitness = BOSS.LinFitness([0., -1.]),
@@ -55,24 +56,27 @@ function get_problem(X, Y;
     )
 end
 
-function get_surrogate(::Val{:Param}, θ_priors, length_scale_priors)
+function get_surrogate(::Val{:Param}, θ_priors, length_scale_priors; kernel=nothing)
+    @assert isnothing(kernel)
     BOSS.NonlinModel(;
         predict = (x, θ) -> ModelParam.calc(x..., θ...),
         param_priors = θ_priors,
     )
 end
-function get_surrogate(::Val{:GP}, θ_priors, length_scale_priors)
+function get_surrogate(::Val{:GP}, θ_priors, length_scale_priors; kernel=BOSS.Matern32Kernel())
     BOSS.Nonparametric(;
+        kernel,
         length_scale_priors,
     )
 end
-function get_surrogate(::Val{:Semipar}, θ_priors, length_scale_priors)
+function get_surrogate(::Val{:Semipar}, θ_priors, length_scale_priors; kernel=BOSS.Matern32Kernel())
     BOSS.Semiparametric(
         BOSS.NonlinModel(;
             predict = (x, θ) -> ModelParam.calc(x..., θ...),
             param_priors = θ_priors,
         ),
         BOSS.Nonparametric(;
+            kernel,
             length_scale_priors,
         ),
     )
@@ -152,23 +156,27 @@ Run BOSS on the motor problem.
 - `iters`: The number of iterations of BOSS.
 - `model_fitter_mode`: Defines the model parameter estimation technique. Choose from `:MLE` and `:BI`.
 - `acq_maximizer_mode`: Defines the acquisition function maximization technique. Choose from `:optim` and `:Random`.
-- `surrogate_mode`: Defines the surrogate model used. Choose from `:Semipar` and `:GP`.
+- `surrogate_mode`: Defines the surrogate model used. Choose from `:Semipar`, `:GP` and `:Param`.
+- `kernel`: The kernel used in GP. Must be `nothing` if `problem` is not nothing.
 """
 function test_script(problem=nothing;
     init_data=1,
     iters=1,
     model_fitter_mode=:MLE,  # :MLE, :BI
     acq_maximizer_mode=:optim,  # :optim, :Random
-    surrogate_mode=:Semipar,  # :Semipar, :GP, :Param
+    surrogate_mode=:Param,  # :Semipar, :GP, :Param
+    kernel=nothing,
     parallel=true,
+    debug=false,
 )
     if acq_maximizer_mode == :Random
         model_fitter_mode = :Random
     end
     if isnothing(problem)
         X, Y = get_data(init_data, get_domain())
-        problem = get_problem(X, Y; surrogate_mode)
+        problem = get_problem(X, Y; surrogate_mode, kernel)
     else
+        @assert isnothing(kernel)
         check_surrogate_mode(surrogate_mode, problem.model)
     end
 
@@ -179,7 +187,7 @@ function test_script(problem=nothing;
 
     options = BOSS.BossOptions(;
         info=true,
-        debug=false,
+        debug,
     )
 
     boss!(problem; model_fitter, acq_maximizer, acquisition, term_cond, options)
@@ -207,54 +215,77 @@ Script to run multiple BOSS runs.
 """
 function runopt(;
     save_path="./data",
-    init_data=2,
+    init_data=4,
     runs=10,
     iters=10,
     id="",
     parallel=true,
+    debug=false,
 )
     isempty(id) || (id *= "_")
+    kernels = [BOSS.Matern12Kernel, BOSS.Matern32Kernel, BOSS.Matern52Kernel]
 
     for r in 1:runs
         # new random data
         X, Y = get_data(init_data, get_domain())
 
         # Random
+        println(" - - - RANDOM - - - - -")
         problem = get_problem(deepcopy.((X, Y))...)
-        res_rand = test_script(problem; iters, parallel, acq_maximizer_mode=:Random)
+        res_rand = test_script(problem; iters, parallel, debug, acq_maximizer_mode=:Random)
         
-        # MLE
-        problem = get_problem(deepcopy.((X, Y))...)
-        res_mle = test_script(problem; iters, parallel)
-        
-        # BI
-        problem = get_problem(deepcopy.((X, Y))...)
-        res_bi = test_script(problem; iters, parallel, model_fitter_mode=:BI)
-        
-        # MLE - GP
-        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
-        res_gp = test_script(problem; iters, parallel, surrogate_mode=:GP)
-        
-        # BI - GP
-        problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
-        res_gpbi = test_script(problem; iters, parallel, surrogate_mode=:GP, model_fitter_mode=:BI)
-
         # MLE - PARAM
+        println(" - - - MLE - PARAM - - - - -")
         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Param)
-        res_par = test_script(problem; iters, parallel, surrogate_mode=:Param)
+        res_par = test_script(problem; iters, parallel, debug, surrogate_mode=:Param, model_fitter_mode=:MLE)
 
         # BI - PARAM
+        println(" - - - BI - PARAM - - - - -")
         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Param)
-        res_parbi = test_script(problem; iters, parallel, surrogate_mode=:Param, model_fitter_mode=:BI)
+        res_parbi = test_script(problem; iters, parallel, debug, surrogate_mode=:Param, model_fitter_mode=:BI)
 
-        # TODO
+        # MLE - GP
+        println(" - - - MLE - GP - - - - -")
+        function run_gp(ker)
+            problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP, kernel=ker())
+            return test_script(problem; iters, parallel, debug, surrogate_mode=:GP, model_fitter_mode=:MLE)
+        end
+        res_gp_vec = run_gp.(kernels)
+        
+        # BI - GP
+        println(" - - - BI - GP - - - - -")
+        function run_gpbi(ker)
+            problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP, kernel=ker())
+            return test_script(problem; iters, parallel, debug, surrogate_mode=:GP, model_fitter_mode=:BI)
+        end
+        res_gpbi_vec = run_gpbi.(kernels)
+        
+        # MLE
+        println(" - - - MLE - Semipar - - - - -")
+        function run_mle(ker)
+            problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Semipar, kernel=ker())
+            return test_script(problem; iters, parallel, debug, surrogate_mode=:Semipar, model_fitter_mode=:MLE)
+        end
+        res_mle_vec = run_mle.(kernels)
+        
+        # BI
+        println(" - - - BI - Semipar - - - - -")
+        function run_bi(ker)
+            problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:Semipar, kernel=ker())
+            return test_script(problem; iters, parallel, debug, surrogate_mode=:Semipar, model_fitter_mode=:BI)
+        end
+        res_bi_vec = run_bi.(kernels)
+
         save(save_path*"/rand_"*id*"$r.jld2", data_dict(res_rand.data))
-        save(save_path*"/mle_"*id*"$r.jld2", data_dict(res_mle.data))
-        save(save_path*"/bi_"*id*"$r.jld2", data_dict(res_bi.data))
-        save(save_path*"/gp_"*id*"$r.jld2", data_dict(res_gp.data))
-        save(save_path*"/gpbi_"*id*"$r.jld2", data_dict(res_gpbi.data))
         save(save_path*"/par_"*id*"$r.jld2", data_dict(res_par.data))
         save(save_path*"/parbi_"*id*"$r.jld2", data_dict(res_parbi.data))
+        for i in eachindex(kernels)
+            kname = split(string(kernels[i]), '.')[end]
+            save(save_path*"/gp_"*kname*'_'*id*"$r.jld2", data_dict(res_gp_vec[i].data))
+            save(save_path*"/gpbi_"*kname*'_'*id*"$r.jld2", data_dict(res_gpbi_vec[i].data))
+            save(save_path*"/mle_"*kname*'_'*id*"$r.jld2", data_dict(res_mle_vec[i].data))
+            save(save_path*"/bi_"*kname*'_'*id*"$r.jld2", data_dict(res_bi_vec[i].data))
+        end
     end
 end
 
@@ -274,8 +305,8 @@ end
 #     for r in 1:runs
 #         X, Y = starts[r]
 
-#         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP)
-#         res = test_script(problem; iters, model_fitter_mode=:MLE, surrogate_mode=:GP)
+#         problem = get_problem(deepcopy.((X, Y))...; surrogate_mode=:GP, kernel=BOSS.Matern32Kernel())
+#         res = test_script(problem; iters, model_fitter_mode=:MLE, surrogate_mode=:GP, kernel=BOSS.Matern32Kernel())
 #         save(dir*"/gp_$r.jld2", data_dict(res.data))
 #     end
 # end
