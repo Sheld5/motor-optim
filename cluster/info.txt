@@ -13,4 +13,4 @@
 `export JULIA_NUM_THREADS=20`
 `julia <...>`  # Check `Sys.CPU_THREADS` and `Threads.nthreads()` in julia.
 
-Parallelized julia code throws `StackOverflowError`.
+Parallelized new PRIMA.jl on Linux throws `StackOverflowError`.
