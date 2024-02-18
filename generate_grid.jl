@@ -14,7 +14,7 @@ function get_domain()
 end
 
 function grid(; save=false)
-    lhc_size = 180
+    lhc_size = 20
     bounds = ModelParam.domain()
     domain = get_domain()
 
@@ -49,7 +49,7 @@ function check_for_duplicates(X)
 end
 
 function save_grid(X)
-    open("./motor_problem/grid.txt", "w+") do io
+    open("./motor-optim/grid.txt", "w+") do io
         
         println(io)
         println(io, "\tnk\tdk\tDs\tQ")
