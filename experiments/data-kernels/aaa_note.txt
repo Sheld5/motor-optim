@@ -1,0 +1,8 @@
+
+All methods & different kernels.
+
+Saved only after all methods finished the current run to keep starts consistent.
+(Old PRIMA can get stuck.)
+
+init_data = 4
+24 jobs, 2 runs each job on each method, (some will not finish)

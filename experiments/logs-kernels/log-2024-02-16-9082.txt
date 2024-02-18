@@ -1,0 +1,26 @@
+WARNING: Method definition mean_vector(AbstractGPs.CustomMean{Tf} where Tf, AbstractArray{T, 1} where T) in module AbstractGPs at /home/soldasim/.julia/packages/AbstractGPs/MakRK/src/mean_function.jl:66 overwritten in module BOSS at /home/soldasim/motor-optim/BOSS.jl/src/models/nonparametric.jl:12.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+WARNING: using Optimization.OptimizationProblem in module BOSS conflicts with an existing identifier.
+WARNING: replacing module ModelParam.
+
+[3093206] signal (11.1): Segmentation fault
+in expression starting at /home/soldasim/motor-optim/motor-optim/cluster/script.jl:11
+cobyla at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+cobyla_minimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+nlopt_optimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+optimize! at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:623
+optimize at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:630
+unknown function (ip: 0x7fe87333ddff)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+acq_optimize at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:54
+macro expansion at /home/soldasim/motor-optim/BOSS.jl/src/optim_utils.jl:22 [inlined]
+#101#threadsfor_fun#21 at ./threadingconstructs.jl:214
+#101#threadsfor_fun at ./threadingconstructs.jl:181 [inlined]
+#1 at ./threadingconstructs.jl:153
+unknown function (ip: 0x7fe873339cc2)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+jl_apply at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/julia.h:1982 [inlined]
+start_task at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/task.c:1238
+Allocations: 300342189693 (Pool: 300342153395; Big: 36298); GC: 258698

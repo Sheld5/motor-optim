@@ -1,0 +1,17 @@
+WARNING: Method definition mean_vector(AbstractGPs.CustomMean{Tf} where Tf, AbstractArray{T, 1} where T) in module AbstractGPs at /home/soldasim/.julia/packages/AbstractGPs/MakRK/src/mean_function.jl:66 overwritten in module BOSS at /home/soldasim/motor-optim/BOSS.jl/src/models/nonparametric.jl:12.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+WARNING: using Optimization.OptimizationProblem in module BOSS conflicts with an existing identifier.
+WARNING: replacing module ModelParam.
+
+[2814589] signal (11.1): Segmentation fault
+in expression starting at /home/soldasim/motor-optim/motor-optim/cluster/script.jl:11
+speccache_eq at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:128
+jl_smallintset_lookup at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/smallintset.c:121
+jl_specializations_get_linfo_ at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:167
+#specialize_method#289 at ./compiler/utilities.jl:224 [inlined]
+specialize_method at ./compiler/utilities.jl:212 [inlined]
+typeinf_edge at ./compiler/typeinfer.jl:871
+abstract_call_method at ./compiler/abstractinterpretation.jl:629
+abstract_call_gf_by_type at ./compiler/abstractinterpretation.jl:95
+abstract_call_unknown at ./compiler/abstractinterpretation.jl:2152
+abstract_call at ./compiler/abstractinterpretation.jl:2162
