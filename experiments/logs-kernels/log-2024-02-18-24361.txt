@@ -1978,3 +1978,25 @@ WARNING: replacing module ModelParam.
 [ Info: Evaluating objective function ...
 [ Info: New data point: [46.0, 0.02461291737501402, 0.489387082624986, 0.30377212438926704] : [155.68002234834083, 13.01063515626356]
 [ Info: Estimating model parameters ...
+
+[1820922] signal (11.1): Segmentation fault
+in expression starting at none:1
+cobyla at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+cobyla_minimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+nlopt_optimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+optimize! at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:623
+optimize at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:630
+unknown function (ip: 0x7f36fc959f8f)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+acq_optimize at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:54
+macro expansion at /home/soldasim/motor-optim/BOSS.jl/src/optim_utils.jl:22 [inlined]
+#101#threadsfor_fun#21 at ./threadingconstructs.jl:214
+#101#threadsfor_fun at ./threadingconstructs.jl:181 [inlined]
+#1 at ./threadingconstructs.jl:153
+unknown function (ip: 0x7f2fdddb6ca2)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+jl_apply at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/julia.h:1982 [inlined]
+start_task at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/task.c:1238
+Allocations: 1481700760732 (Pool: 1481418263528; Big: 282497204); GC: 47836

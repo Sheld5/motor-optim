@@ -1991,3 +1991,44 @@ WARNING: replacing module ModelParam.
 [ Info: New data point: [52.0, 0.025255349652660835, 0.48360186881132805, 0.7057340073624654] : [474.4856315395302, 82.01270896625597]
 [ Info: Estimating model parameters ...
 [ Info: Maximizing acquisition function ...
+
+[3300020] signal (11.128): Segmentation fault
+in expression starting at none:1
+jl_gc_pool_alloc_inner at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gc.c:1308 [inlined]
+jl_gc_pool_alloc_noinline at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gc.c:1350
+jl_gc_alloc_ at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/julia_internal.h:477 [inlined]
+ijl_new_typevar at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/builtins.c:1451
+copy at ./broadcast.jl:949 [inlined]
+materialize at ./broadcast.jl:903 [inlined]
+feas_prob at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_function/expected_improvement.jl:112
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+acq at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_function/expected_improvement.jl:80
+acq_safe at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_function/expected_improvement.jl:65 [inlined]
+#109 at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:74
+f_obj at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:79
+unknown function (ip: 0x7fd9a38a36dc)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+nlopt_callback_wrapper at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:390
+unknown function (ip: 0x7fd9a38a26b8)
+func_wrap at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+cobyla at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+cobyla_minimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+nlopt_optimize at /home/soldasim/.julia/artifacts/332af19a7ea5911ea41bb72ba5e3badcf5dd4ba1/lib/libnlopt.so (unknown line)
+optimize! at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:623
+optimize at /home/soldasim/.julia/packages/NLopt/9LS3P/src/NLopt.jl:630
+unknown function (ip: 0x7fdaff03edaf)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+acq_optimize at /home/soldasim/motor-optim/BOSS.jl/src/acquisition_maximizer/NLopt.jl:54
+macro expansion at /home/soldasim/motor-optim/BOSS.jl/src/optim_utils.jl:22 [inlined]
+#101#threadsfor_fun#21 at ./threadingconstructs.jl:214
+#101#threadsfor_fun at ./threadingconstructs.jl:181 [inlined]
+#1 at ./threadingconstructs.jl:153
+unknown function (ip: 0x7fd9a38a21e2)
+_jl_invoke at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:2894 [inlined]
+ijl_apply_generic at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/gf.c:3076
+jl_apply at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/julia.h:1982 [inlined]
+start_task at /cache/build/builder-amdci4-6/julialang/julia-release-1-dot-10/src/task.c:1238
+Allocations: 1450460912813 (Pool: 1450172845579; Big: 288067234); GC: 46061
